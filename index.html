@@ -295,7 +295,7 @@
     <button class="btn-primary"    onclick="generatePreview()">Generate Preview</button>
     <button class="btn-secondary"  onclick="loadSample()">Load Sample</button>
     <button class="btn-secondary"  onclick="clearAll()">Clear</button>
-    <button class="btn-download"   onclick="downloadACH()">⬇ Download .ach</button>
+    <button class="btn-download"   onclick="downloadACH()">⬇ Download .txt</button>
   </div>
   <div class="preview-box" id="previewBox">Click "Generate Preview" to see the ACH file...</div>
 
@@ -767,7 +767,7 @@ function downloadACH() {
     const a     = document.createElement('a');
     const n     = new Date();
     a.href      = url;
-    a.download  = `INC_ACH_P1-${String(n.getMonth()+1).padStart(2,'0')}${String(n.getDate()).padStart(2,'0')}_${now4()}.ach`;
+    a.download  = `INC_ACH_P1-${String(n.getMonth()+1).padStart(2,'0')}${String(n.getDate()).padStart(2,'0')}_${now4()}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   } catch(e) {
