@@ -767,7 +767,7 @@ function downloadACH() {
     const a     = document.createElement('a');
     const n     = new Date();
     a.href      = url;
-    a.download  = `ACH_${n.getFullYear()}${String(n.getMonth()+1).padStart(2,'0')}${String(n.getDate()).padStart(2,'0')}_${now4()}.ach`;
+    a.download  = `INC_ACH_P1-${String(n.getMonth()+1).padStart(2,'0')}${String(n.getDate()).padStart(2,'0')}_${now4()}.ach`;
     a.click();
     URL.revokeObjectURL(url);
   } catch(e) {
