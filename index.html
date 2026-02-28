@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACH File Builder</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;700;800&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #161b27;
+    --border: #1e2230;
+    --accent: #00e5a0;
+    --accent2: #3d7fff;
+    --text: #e8eaf0;
+    --muted: #5a6080;
+    --danger: #ff4f4f;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; padding: 2rem; }
+
+  h1 { font-size: 2rem; font-weight: 800; color: var(--accent); letter-spacing: -0.03em; margin-bottom: 0.2rem; }
+  .subtitle { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 2rem; }
+
+  .section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .section-title { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+  .section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  .client-grid { display:flex; gap:0.75rem; flex-wrap:wrap; margin-bottom:1.25rem; }
+  .client-btn { font-family:'Syne',sans-serif; font-weight:700; font-size:0.85rem; padding:0.5rem 1.2rem; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; transition:all 0.15s; }
+  .client-btn:hover { border-color:var(--accent); color:var(--text); }
+  .client-btn.active { background:var(--accent); color:#000; border-color:var(--accent); }
+
+  .form-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:1rem; }
+  .form-group { display:flex; flex-direction:column; gap:0.4rem; }
+  label { font-size:0.65rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }
+  input, select { font-family:'JetBrains Mono',monospace; font-size:0.8rem; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); padding:0.55rem 0.75rem; outline:none; transition:border-color 0.2s; width:100%; }
+  input:focus, select:focus { border-color:var(--accent); }
+  input.auto { color:var(--accent2); border-color:#1a2a50; }
+  select option { background:#111318; }
+
+  .table-wrap { overflow-x:auto; margin-bottom:1rem; }
+  table { width:100%; border-collapse:collapse; min-width:960px; }
+  thead tr { background:var(--surface2); }
+  thead th { font-size:0.6rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); padding:0.55rem 0.5rem; text-align:left; white-space:nowrap; border-bottom:1px solid var(--border); }
+  tbody tr { border-bottom:1px solid var(--border); animation:slideIn 0.2s ease; }
+  tbody tr:hover { background:var(--surface2); }
+  @keyframes slideIn { from{opacity:0;transform:translateY(4px);} to{opacity:1;transform:translateY(0);} }
+  td { padding:0.3rem 0.4rem; vertical-align:middle; }
+  td input, td select { padding:0.38rem 0.5rem; font-size:0.75rem; }
+  td textarea { font-family:'JetBrains Mono',monospace; font-size:0.7rem; background:var(--bg); border:1px solid var(--border); border-radius:6px; color:var(--text); padding:0.38rem 0.5rem; outline:none; resize:vertical; min-height:36px; width:100%; min-width:160px; }
+  td textarea:focus { border-color:var(--accent); }
+  .row-num { font-family:'JetBrains Mono',monospace; font-size:0.65rem; color:var(--muted); text-align:center; width:28px; }
+
+  .addenda-tag { font-size:0.55rem; padding:0.1rem 0.35rem; border-radius:3px; }
+  .tag-opt { background:#1a2535; color:#7ab0ff; }
+  .tag-req { background:#2a1f10; color:#ffb34d; }
+
+  .del-btn { background:none; border:1px solid #2a1515; border-radius:4px; color:var(--danger); cursor:pointer; font-size:0.8rem; padding:0.3rem 0.5rem; }
+  .del-btn:hover { background:#2a1515; }
+
+  .btn-row { display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center; }
+  button.btn-primary { font-family:'Syne',sans-serif; font-weight:700; font-size:0.85rem; padding:0.6rem 1.4rem; border-radius:8px; border:none; background:var(--accent); color:#000; cursor:pointer; transition:all 0.15s; }
+  button.btn-primary:hover { filter:brightness(1.1); transform:translateY(-1px); }
+  button.btn-secondary { font-family:'Syne',sans-serif; font-weight:700; font-size:0.85rem; padding:0.6rem 1.4rem; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--muted); cursor:pointer; transition:all 0.15s; }
+  button.btn-secondary:hover { border-color:var(--accent2); color:var(--text); }
+  button.btn-add { font-family:'Syne',sans-serif; font-weight:700; font-size:0.82rem; padding:0.55rem 1.2rem; border-radius:8px; border:1px dashed var(--border); background:transparent; color:var(--muted); cursor:pointer; transition:all 0.15s; }
+  button.btn-add:hover { border-color:var(--accent); color:var(--accent); }
+  button.btn-download { font-family:'Syne',sans-serif; font-weight:700; font-size:0.85rem; padding:0.6rem 1.4rem; border-radius:8px; border:none; background:var(--accent2); color:#fff; cursor:pointer; margin-left:auto; transition:all 0.15s; }
+  button.btn-download:hover { filter:brightness(1.15); }
+
+  .totals-bar { display:flex; gap:2rem; flex-wrap:wrap; padding:0.75rem 1rem; background:var(--bg); border:1px solid var(--border); border-radius:8px; margin-top:1rem; }
+  .total-item .tl { font-size:0.6rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }
+  .total-item .tv { font-family:'JetBrains Mono',monospace; font-size:1rem; font-weight:600; color:var(--accent); margin-top:0.15rem; }
+
+  .batch-preview { display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:1rem; }
+  .batch-chip { font-family:'JetBrains Mono',monospace; font-size:0.7rem; padding:0.3rem 0.75rem; border-radius:6px; border:1px solid var(--border); background:var(--surface2); display:flex; align-items:center; gap:0.5rem; }
+
+  .preview-box { font-family:'JetBrains Mono',monospace; font-size:0.7rem; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:1rem; overflow-x:auto; white-space:pre; line-height:1.9; max-height:500px; overflow-y:auto; }
+  .error-msg { background:#2a0f0f; border:1px solid #5a1515; color:#ff7070; border-radius:8px; padding:0.75rem 1rem; font-family:'JetBrains Mono',monospace; font-size:0.8rem; margin-bottom:1rem; white-space:pre-line; }
+
+  /* ── NACHA PARSER ─────────────────────────────────────── */
+  .parser-input-box {
+    font-family:'JetBrains Mono',monospace; font-size:0.72rem;
+    background:var(--bg); border:1px solid var(--border); border-radius:8px;
+    color:var(--text); padding:0.85rem 1rem; width:100%; resize:vertical;
+    min-height:120px; outline:none; line-height:1.8;
+  }
+  .parser-input-box:focus { border-color:var(--accent); }
+
+  /* record accordion */
+  .pr-record { border:1px solid var(--border); border-radius:10px; margin-bottom:0.6rem; overflow:hidden; }
+  .pr-rec-hdr { display:flex; align-items:center; gap:0.7rem; padding:0.65rem 1rem; cursor:pointer; user-select:none; background:var(--surface2); transition:background 0.12s; }
+  .pr-rec-hdr:hover { background:#181e30; }
+  .pr-record.open .pr-rec-hdr { background:#111828; border-left: 3px solid var(--accent2); }
+  .pr-badge { font-family:'JetBrains Mono',monospace; font-size:0.62rem; font-weight:700; padding:0.2rem 0.55rem; border-radius:4px; letter-spacing:0.06em; white-space:nowrap; }
+  .pb1  { background:#1e2a55; color:#7a9fff; }
+  .pb5  { background:#1a2535; color:#3d7fff; }
+  .pb6  { background:#0f3020; color:#00e5a0; }
+  .pb7  { background:#3a1f05; color:#ff6b35; }
+  .pb8  { background:#251040; color:#b07eff; }
+  .pb9  { background:#251525; color:#ff7ab0; }
+  .pbPAD{ background:#181818; color:#555; }
+  .pr-line-num { font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:#333d55; min-width:30px; }
+  .pr-rec-title { font-size:0.87rem; font-weight:700; color:var(--text); flex:1; }
+  .pr-rec-summary { font-family:'JetBrains Mono',monospace; font-size:0.62rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:300px; }
+  .pr-chevron {
+    font-size: 0.75rem;
+    color: #3a4a6a;
+    transition: transform 0.22s ease, color 0.15s;
+    flex-shrink: 0;
+  }
+  .pr-rec-hdr:hover .pr-chevron { color: var(--muted); }
+  .pr-record.open .pr-chevron { transform: rotate(180deg); color: var(--accent); }
+  .pr-rec-body {
+    display: none;
+    padding: 1rem 1rem 1.1rem;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    animation: fadeIn 0.18s ease;
+  }
+  .pr-record.open .pr-rec-body { display: block; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+
+  /* raw line */
+  .pr-raw { font-family:'JetBrains Mono',monospace; font-size:0.64rem; color:#5a7090;
+    background:#070910; border:1px solid var(--border); border-radius:6px;
+    padding:0.55rem 0.8rem; overflow-x:auto; white-space:nowrap;
+    letter-spacing:0.04em; margin-bottom:1rem; }
+
+  /* ── FIELD CARDS GRID ──────────────────────────────────── */
+  .pr-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    align-items: flex-start;
+  }
+
+  .pr-fc {
+    background: #0d1018;
+    border: 1px solid #1c2235;
+    border-radius: 7px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    width: 185px;
+    flex-shrink: 0;
+  }
+  .pr-fc:hover {
+    border-color: #2a3a5a;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  }
+
+  /* coloured top stripe — record type colour */
+  .pr-fc-stripe {
+    height: 3px;
+    width: 100%;
+    flex-shrink: 0;
+  }
+  .stripe-1 { background: #7a9fff; }
+  .stripe-5 { background: #3d7fff; }
+  .stripe-6 { background: #00e5a0; }
+  .stripe-7 { background: #ff6b35; }
+  .stripe-8 { background: #b07eff; }
+  .stripe-9 { background: #ff7ab0; }
+
+  .pr-fc-inner {
+    padding: 0.65rem 0.75rem 0.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    flex: 1;
+  }
+
+  /* LABEL */
+  .pr-fc-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #4a5a7a;
+    line-height: 1.35;
+    font-weight: 600;
+  }
+
+  /* POSITION BADGE */
+  .pr-fc-pos {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.58rem;
+    color: #2a5a9a;
+    background: #080f1e;
+    border: 1px solid #0f2040;
+    border-radius: 3px;
+    padding: 0.1rem 0.38rem;
+    display: inline-block;
+    letter-spacing: 0.05em;
+    width: fit-content;
+  }
+
+  /* VALUE */
+  .pr-fc-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #c8d8f0;
+    word-break: break-all;
+    line-height: 1.35;
+    margin-top: 0.05rem;
+    min-height: 1.2rem;
+  }
+  .pr-fc-val.blank  { color: #1a2235; font-style: italic; font-weight: 400; font-size: 0.72rem; }
+  .pr-fc-val.amount { color: #00e5a0; }
+  .pr-fc-val.route  { color: #6aacff; }
+  .pr-fc-val.sec    { color: #ffb34d; }
+  .pr-fc-val.code   { color: #b07eff; }
+  .pr-fc-val.date   { color: #ff9f6a; }
+
+</style>
+</head>
+<body>
+
+<h1>ACH Builder</h1>
+<p class="subtitle">Per-Entry SEC Code · Auto-Batch Grouping · Multi-SEC · NACHA Compliant</p>
+
+<!-- CLIENT -->
+<div class="section">
+  <div class="section-title">Client / Bank Profile</div>
+  <div class="client-grid" id="clientBtns"></div>
+  <div class="form-grid">
+    <div class="form-group"><label>Destination Routing</label><input id="destRouting" maxlength="9" placeholder="065070532"></div>
+    <div class="form-group"><label>Origin Routing</label><input id="originRouting" maxlength="10" placeholder="0631015352"></div>
+    <div class="form-group"><label>Destination Name</label><input id="destName" maxlength="23" placeholder="SMBC Jenius Bank"></div>
+    <div class="form-group"><label>Origin Name</label><input id="originName" maxlength="23" placeholder="YOUR COMPANY"></div>
+    <div class="form-group"><label>Company Name</label><input id="companyName" maxlength="16" placeholder="SMBC Jenius Bank"></div>
+    <div class="form-group"><label>Company ID</label><input id="companyId" maxlength="10" placeholder="1234567890"></div>
+    <div class="form-group"><label>Company Entry Description</label><input id="companyDesc" maxlength="10" placeholder="PPDPAYMENT"></div>
+    <div class="form-group"><label>Effective Date (YYMMDD) <span style="font-size:0.55rem;background:#1a2a50;color:var(--accent2);padding:0.1rem 0.3rem;border-radius:3px;letter-spacing:0">AUTO</span></label><input id="effDate" maxlength="6" class="auto"></div>
+    <div class="form-group"><label>ODFI Routing (8 digits)</label><input id="odfiRouting" maxlength="8" placeholder="06507053"></div>
+  </div>
+</div>
+
+<!-- ENTRIES -->
+<div class="section">
+  <div class="section-title">Entry Details — SEC Code per Row · Auto-Grouped into Batches</div>
+  <div id="errorBox" style="display:none" class="error-msg"></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:28px">#</th>
+          <th style="min-width:150px">Individual / Company Name</th>
+          <th style="min-width:140px">Account Number</th>
+          <th style="min-width:110px">Routing Number</th>
+          <th style="min-width:100px">Amount ($)</th>
+          <th style="min-width:160px">Transaction Code</th>
+          <th style="min-width:80px">SEC Code</th>
+          <th style="min-width:180px">
+            Addenda
+            <span class="addenda-tag tag-opt">CCD optional</span>
+            <span class="addenda-tag tag-req">CTX required</span>
+          </th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="entriesBody"></tbody>
+    </table>
+  </div>
+
+  <div class="btn-row" style="margin-bottom:1rem">
+    <button class="btn-add" onclick="addEntry()">+ Add Entry</button>
+  </div>
+
+  <div style="font-size:0.65rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)">Auto-Generated File Structure:</div>
+  <div class="batch-preview" id="batchPreview">
+    <span style="font-size:0.7rem;color:var(--muted)">Add entries to see batch grouping</span>
+  </div>
+
+  <div class="totals-bar">
+    <div class="total-item"><div class="tl">Entries</div><div class="tv" id="totEntries">0</div></div>
+    <div class="total-item"><div class="tl">Batches</div><div class="tv" id="totBatches">0</div></div>
+    <div class="total-item"><div class="tl">Total Credit</div><div class="tv" id="totCredit">$0.00</div></div>
+    <div class="total-item"><div class="tl">Total Debit</div><div class="tv" id="totDebit">$0.00</div></div>
+  </div>
+</div>
+
+<!-- PREVIEW -->
+<div class="section">
+  <div class="section-title">ACH File Preview & Download</div>
+  <div class="btn-row" style="margin-bottom:1rem">
+    <button class="btn-primary"    onclick="generatePreview()">Generate Preview</button>
+    <button class="btn-secondary"  onclick="loadSample()">Load Sample</button>
+    <button class="btn-secondary"  onclick="clearAll()">Clear</button>
+    <button class="btn-download"   onclick="downloadACH()">⬇ Download .ach</button>
+  </div>
+  <div class="preview-box" id="previewBox">Click "Generate Preview" to see the ACH file...</div>
+
+
+
+</div>
+
+<script>
+// ── CLIENTS ──────────────────────────────────────────────────
+const CLIENTS = {
+  'SMBC Jenius': { destRouting:'065070532', originRouting:'0631015352', destName:'SMBC Jenius Bank',  originName:'SMBC JENIUS',  companyName:'SMBC Jenius',    companyId:'1234567890', companyDesc:'PPDPAYMENT',  odfiRouting:'06507053' },
+  'BMO':         { destRouting:'071000288', originRouting:'0710002880', destName:'BMO HARRIS BANK',   originName:'BMO HARRIS',   companyName:'BMO Harris',     companyId:'9876543210', companyDesc:'PAYROLL',     odfiRouting:'07100028' },
+  'Wells Fargo': { destRouting:'121000248', originRouting:'1210002480', destName:'WELLS FARGO BANK',  originName:'WELLS FARGO',  companyName:'Wells Fargo',    companyId:'1122334455', companyDesc:'TRANSFER',    odfiRouting:'12100024' },
+  'Chase':       { destRouting:'021000021', originRouting:'0210000210', destName:'JPMORGAN CHASE',    originName:'CHASE BANK',   companyName:'JPMorgan Chase', companyId:'5566778899', companyDesc:'PAYMENT',     odfiRouting:'02100002' },
+  'BofA':        { destRouting:'026009593', originRouting:'0260095930', destName:'BANK OF AMERICA',   originName:'BOFA',         companyName:'Bank of America',companyId:'1357924680', companyDesc:'DIRECT DEP',  odfiRouting:'02600959' },
+};
+
+// SEC code rules — addenda: 'none' | 'optional' | 'required'
+const SEC_RULES = {
+  PPD: { addenda:'none',     color:'#00e5a0', bg:'#0f3020' },
+  CCD: { addenda:'optional', color:'#7ab0ff', bg:'#1a2535' },
+  CTX: { addenda:'required', color:'#ffb34d', bg:'#2a1f10' },
+  TEL: { addenda:'none',     color:'#cc88ff', bg:'#25102a' },
+  WEB: { addenda:'none',     color:'#44ccff', bg:'#10202a' },
+};
+
+const TXN_CODES = [
+  { v:'22', l:'22 — Checking Credit' },
+  { v:'27', l:'27 — Checking Debit'  },
+  { v:'32', l:'32 — Savings Credit'  },
+  { v:'37', l:'37 — Savings Debit'   },
+  { v:'52', l:'52 — Loan Credit'     },
+  { v:'55', l:'55 — Loan Debit'      },
+];
+const CREDIT_CODES = new Set(['22','32','42','52']);
+
+let eid = 0;
+
+// ── INIT ──────────────────────────────────────────────────────
+function init() {
+  const cb = document.getElementById('clientBtns');
+  Object.keys(CLIENTS).forEach((name, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'client-btn' + (i===0?' active':'');
+    btn.textContent = name;
+    btn.onclick = () => selectClient(name, btn);
+    cb.appendChild(btn);
+  });
+  const n = new Date();
+  document.getElementById('effDate').value =
+    String(n.getFullYear()).slice(2) +
+    String(n.getMonth()+1).padStart(2,'0') +
+    String(n.getDate()).padStart(2,'0');
+  selectClient('SMBC Jenius', cb.children[0]);
+  addEntry(); addEntry(); addEntry();
+}
+
+function selectClient(name, btn) {
+  document.querySelectorAll('.client-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  Object.keys(CLIENTS[name]).forEach(k => {
+    const el = document.getElementById(k);
+    if (el) el.value = CLIENTS[name][k];
+  });
+}
+
+// ── ENTRY MANAGEMENT ─────────────────────────────────────────
+function addEntry(data) {
+  eid++;
+  const id  = eid;
+  const body= document.getElementById('entriesBody');
+  const num = body.children.length + 1;
+  const sec = data ? (data.sec || 'PPD') : 'PPD';
+
+  const tr = document.createElement('tr');
+  tr.id = `erow-${id}`;
+  tr.innerHTML = `
+    <td class="row-num">${num}</td>
+    <td><input type="text"   id="ename-${id}"  placeholder="John Smith"       oninput="refresh()"></td>
+    <td><input type="text"   id="eacct-${id}"  placeholder="123456789012345"  oninput="refresh()"></td>
+    <td><input type="text"   id="eroute-${id}" placeholder="021000021" maxlength="9" oninput="refresh()"></td>
+    <td><input type="number" id="eamt-${id}"   placeholder="0.00" min="0" step="0.01" style="width:105px" oninput="refresh()"></td>
+    <td>
+      <select id="etxn-${id}" onchange="refresh()">
+        ${TXN_CODES.map(t=>`<option value="${t.v}">${t.l}</option>`).join('')}
+      </select>
+    </td>
+    <td>
+      <select id="esec-${id}" onchange="secChanged(${id})" style="width:78px">
+        ${Object.keys(SEC_RULES).map(s=>`<option value="${s}">${s}</option>`).join('')}
+      </select>
+    </td>
+    <td id="addenda-cell-${id}"></td>
+    <td><button class="del-btn" onclick="removeEntry(${id})">✕</button></td>
+  `;
+  body.appendChild(tr);
+
+  // Fill data if provided
+  if (data) {
+    document.getElementById(`ename-${id}`).value  = data.name  || '';
+    document.getElementById(`eacct-${id}`).value  = data.acct  || '';
+    document.getElementById(`eroute-${id}`).value = data.route || '';
+    document.getElementById(`eamt-${id}`).value   = data.amt   || '';
+    document.getElementById(`etxn-${id}`).value   = data.txn   || '22';
+    document.getElementById(`esec-${id}`).value   = sec;
+  }
+
+  renderAddendaCell(id, sec, data ? data.addenda : '');
+  refresh();
+}
+
+function renderAddendaCell(id, sec, prefill) {
+  const rule = SEC_RULES[sec];
+  const cell = document.getElementById(`addenda-cell-${id}`);
+  if (!cell) return;
+
+  if (rule.addenda === 'none') {
+    cell.innerHTML = `<span style="font-size:0.65rem;color:var(--muted);padding:0 0.5rem">—</span>`;
+  } else if (rule.addenda === 'optional') {
+    cell.innerHTML = `<input type="text" id="eaddenda-${id}" placeholder="Optional — payment info" style="min-width:170px" oninput="refresh()">`;
+    if (prefill) document.getElementById(`eaddenda-${id}`).value = prefill;
+  } else {
+    // CTX — required, multi-line
+    cell.innerHTML = `<textarea id="eaddenda-${id}" placeholder="Required — one addenda per line&#10;(max 9999 lines)" rows="2" oninput="refresh()"></textarea>`;
+    if (prefill) document.getElementById(`eaddenda-${id}`).value = prefill;
+  }
+}
+
+function secChanged(id) {
+  const sec = document.getElementById(`esec-${id}`)?.value || 'PPD';
+  renderAddendaCell(id, sec, '');
+  refresh();
+}
+
+function removeEntry(id) {
+  document.getElementById(`erow-${id}`)?.remove();
+  renumber();
+  refresh();
+}
+
+function renumber() {
+  document.querySelectorAll('#entriesBody tr').forEach((tr, i) => {
+    const n = tr.querySelector('.row-num');
+    if (n) n.textContent = i + 1;
+  });
+}
+
+function clearAll() {
+  document.getElementById('entriesBody').innerHTML = '';
+  eid = 0;
+  document.getElementById('previewBox').textContent = 'Click "Generate Preview" to see the ACH file...';
+  document.getElementById('errorBox').style.display = 'none';
+  addEntry(); addEntry(); addEntry();
+}
+
+// ── READ ENTRIES ──────────────────────────────────────────────
+function getEntries() {
+  return Array.from(document.querySelectorAll('#entriesBody tr')).map(tr => {
+    const id  = tr.id.split('-')[1];
+    const sec = document.getElementById(`esec-${id}`)?.value || 'PPD';
+    const rule= SEC_RULES[sec];
+    const addendaEl = document.getElementById(`eaddenda-${id}`);
+    return {
+      id,
+      name:    document.getElementById(`ename-${id}`)?.value  || '',
+      acct:    document.getElementById(`eacct-${id}`)?.value  || '',
+      routing: document.getElementById(`eroute-${id}`)?.value || '',
+      amount:  parseFloat(document.getElementById(`eamt-${id}`)?.value || 0) || 0,
+      txnCode: document.getElementById(`etxn-${id}`)?.value   || '22',
+      sec,
+      addenda: (rule.addenda !== 'none' && addendaEl) ? addendaEl.value : '',
+    };
+  });
+}
+
+// Group by SEC code — preserving first-appearance order
+function groupBySec(entries) {
+  const order = [], map = {};
+  entries.forEach(e => {
+    if (!map[e.sec]) { map[e.sec] = []; order.push(e.sec); }
+    map[e.sec].push(e);
+  });
+  return order.map(sec => ({ sec, entries: map[sec] }));
+}
+
+// ── REFRESH UI ────────────────────────────────────────────────
+function refresh() {
+  const all    = getEntries();
+  const filled = all.filter(e => e.name || e.acct || e.amount);
+  const groups = groupBySec(filled);
+
+  let credit = 0, debit = 0;
+  all.forEach(e => {
+    if (CREDIT_CODES.has(e.txnCode)) credit += e.amount;
+    else debit += e.amount;
+  });
+
+  document.getElementById('totEntries').textContent = all.length;
+  document.getElementById('totBatches').textContent  = groups.length;
+  document.getElementById('totCredit').textContent   = '$' + credit.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  document.getElementById('totDebit').textContent    = '$' + debit.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+
+  // Batch structure chips
+  const prev = document.getElementById('batchPreview');
+  if (groups.length === 0) {
+    prev.innerHTML = '<span style="font-size:0.7rem;color:var(--muted)">Add entries to see batch grouping</span>';
+    return;
+  }
+
+  // FILE HEADER chip
+  let html = `<div class="batch-chip"><span style="color:#7a9fff">1</span><span style="color:var(--muted)">FILE HEADER</span></div>`;
+
+  groups.forEach((g, i) => {
+    const rule = SEC_RULES[g.sec];
+    const col  = rule.color;
+    const bg   = rule.bg;
+    const withAddenda = g.entries.filter(e => e.addenda && e.addenda.trim()).length;
+    const type7note   = withAddenda > 0 ? `· ${withAddenda}×<span style="color:#ff6b35">7</span>` : '';
+
+    html += `
+      <div class="batch-chip">
+        <span style="color:${col};background:${bg};padding:0.1rem 0.4rem;border-radius:3px;font-size:0.65rem;font-weight:700">${g.sec}</span>
+        <span style="color:var(--muted)">Batch ${i+1}</span>
+        <span style="color:#3d7fff">5</span>
+        <span style="color:var(--muted)">→</span>
+        <span style="color:#00e5a0">${g.entries.length}×6</span>
+        ${type7note ? `<span style="color:var(--muted)">→</span>${type7note}` : ''}
+        <span style="color:var(--muted)">→</span>
+        <span style="color:#b07eff">8</span>
+      </div>`;
+  });
+
+  html += `<div class="batch-chip"><span style="color:#ff7ab0">9</span><span style="color:var(--muted)">FILE CONTROL — covers all ${groups.length} batch${groups.length===1?'':'es'}</span></div>`;
+  prev.innerHTML = html;
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+const pad = (v, len, ch=' ', right=false) => {
+  let s = String(v ?? '');
+  return right ? s.substring(0,len).padEnd(len,ch) : s.substring(0,len).padStart(len,ch);
+};
+const fmtAmt   = (d, len) => pad(Math.round(d*100), len, '0');
+const now4     = () => { const n=new Date(); return String(n.getHours()).padStart(2,'0')+String(n.getMinutes()).padStart(2,'0'); };
+const fileDate = () => { const n=new Date(); return String(n.getFullYear()).slice(2)+String(n.getMonth()+1).padStart(2,'0')+String(n.getDate()).padStart(2,'0'); };
+const julian   = () => { const n=new Date(), s=new Date(n.getFullYear(),0,0), d=Math.floor((n-s)/864e5); return String(d).padStart(3,'0'); }; // Julian = 3-digit day of year (001-366)
+
+// ── BUILD ACH ─────────────────────────────────────────────────
+function buildACH() {
+  const g = id => document.getElementById(id)?.value.trim() || '';
+  const destRouting   = g('destRouting');
+  const originRouting = g('originRouting');
+  const destName      = g('destName');
+  const originName    = g('originName');
+  const companyName   = g('companyName');
+  const companyId     = g('companyId');
+  const companyDesc   = g('companyDesc');
+  const effDate       = g('effDate');
+  const odfi          = pad(g('odfiRouting'), 8, '0');
+
+  // Validate
+  const errs = [];
+  if (!destRouting)   errs.push('Destination Routing is required');
+  if (!originRouting) errs.push('Origin Routing is required');
+  if (!companyName)   errs.push('Company Name is required');
+  if (!companyId)     errs.push('Company ID is required');
+  if (!g('odfiRouting')) errs.push('ODFI Routing is required');
+
+  const allEntries = getEntries().filter(e => e.name || e.acct || e.amount);
+  if (allEntries.length === 0) errs.push('Add at least one entry with data');
+
+  allEntries.forEach((e, i) => {
+    if (e.sec === 'CTX' && (!e.addenda || !e.addenda.trim()))
+      errs.push(`Row ${i+1} (${e.name||'unnamed'}): CTX requires at least one addenda line`);
+  });
+
+  if (errs.length) throw new Error(errs.join('\n'));
+
+  const groups = groupBySec(allEntries);
+  const lines  = [];
+
+  // ── TYPE 1: FILE HEADER ──────────────────────────────────
+  // Positions: 1=RecType, 2-3=Priority(01), 4-13=Dest(10), 14-23=Origin(10),
+  // 24-29=Date(6), 30-33=Time(4), 34=FileID(A), 35-37=RecSize(094),
+  // 38-39=BlockFactor(10), 40=FormatCode(1), 41-63=DestName(23),
+  // 64-86=OriginName(23), 87-94=RefCode(8)  → total = 94
+  lines.push(
+    '1' +
+    '01' +
+    pad(' ' + destRouting, 10) +
+    pad(originRouting, 10) +
+    fileDate() + now4() +
+    'A' +
+    '094' +
+    '10' +
+    '1' +
+    pad(destName,   23, ' ', true) +
+    pad(originName, 23, ' ', true) +
+    pad('',          8, ' ', true)
+  );
+
+  let fileHash = 0, fileCredit = 0, fileDebit = 0, fileEACount = 0;
+  let batchNum = 0;
+
+  groups.forEach(group => {
+    batchNum++;
+    const sec     = group.sec;
+    const rule    = SEC_RULES[sec];
+    const bNumStr = pad(batchNum, 7, '0');
+    let bHash = 0, bCredit = 0, bDebit = 0, bEACount = 0;
+
+    // ── TYPE 5: BATCH HEADER ──────────────────────────────
+    // Positions: 1=RecType(5), 2-4=ServiceClass(200), 5-20=CompanyName(16),
+    // 21-40=Discretionary(20), 41-50=CompanyID(10), 51-53=SEC(3),
+    // 54-63=EntryDesc(10), 64-69=DescDate(6), 70-75=EffectiveDate(6),
+    // 76-78=SettlementDate(3 spaces — bank fills), 79=OriginatorStatus(1),
+    // 80-87=ODFIRouting(8), 88-94=BatchNumber(7)  → total = 94
+    lines.push(
+      '5' +
+      '200' +
+      pad(companyName, 16, ' ', true) +
+      pad('',          20, ' ', true) +
+      pad(companyId,   10, ' ', true) +
+      pad(sec,          3, ' ', true) +
+      pad(companyDesc, 10, ' ', true) +
+      '      ' +
+      effDate +
+      julian() +
+      '1' +
+      odfi +
+      bNumStr
+    );
+
+    group.entries.forEach((e, ei) => {
+      const r8         = pad(e.routing.substring(0,8), 8, '0');
+      const chkDig     = e.routing[8] || '0';
+      const trace      = odfi + pad(String(ei+1), 7, '0');
+      const hasAddenda = rule.addenda !== 'none' && e.addenda && e.addenda.trim();
+      const addInd     = hasAddenda ? '1' : '0';
+
+      bHash += parseInt(r8) || 0;
+      if (CREDIT_CODES.has(e.txnCode)) bCredit += e.amount;
+      else bDebit += e.amount;
+      bEACount++;
+
+      // ── TYPE 6: ENTRY DETAIL ────────────────────────────
+      lines.push(
+        '6' +
+        pad(e.txnCode,  2) +
+        r8 + chkDig +
+        pad(e.acct,    17, ' ', true) +
+        fmtAmt(e.amount, 10) +
+        pad(e.acct.substring(0,15), 15, ' ', true) +
+        pad(e.name,    22, ' ', true) +
+        '  ' +
+        addInd +
+        trace
+      );
+
+      // ── TYPE 7: ADDENDA ─────────────────────────────────
+      if (hasAddenda) {
+        if (sec === 'CTX') {
+          // Multi-line — one type 7 per line
+          e.addenda.split('\n').map(l=>l.trim()).filter(Boolean).slice(0,9999)
+            .forEach((al, ai) => {
+              lines.push(
+                '7' +
+                '05' +
+                pad(al, 80, ' ', true) +
+                pad(String(ai+1), 4, '0') +
+                pad(trace.slice(-7), 7, '0')
+              );
+              bEACount++;
+            });
+        } else {
+          // CCD — single addenda
+          lines.push(
+            '7' +
+            '05' +
+            pad(e.addenda, 80, ' ', true) +
+            '0001' +
+            pad(trace.slice(-7), 7, '0')
+          );
+          bEACount++;
+        }
+      }
+    });
+
+    // ── TYPE 8: BATCH CONTROL ────────────────────────────
+    // Positions: 1=RecType(8), 2-4=ServiceClass(200), 5-10=EntryAddendaCount(6),
+    // 11-20=EntryHash(10), 21-32=TotalDebit(12), 33-44=TotalCredit(12),
+    // 45-54=CompanyID(10), 55-73=MessageAuthCode(19), 74-76=Reserved(3),
+    // 77-84=ODFIRouting(8), 85-87=Reserved(3), 88-94=BatchNumber(7) → total=94
+    lines.push(
+      '8' +
+      '200' +
+      pad(bEACount,  6, '0') +
+      pad(String(bHash).slice(-10), 10, '0') +
+      fmtAmt(bDebit,  12) +
+      fmtAmt(bCredit, 12) +
+      pad(companyId, 10, ' ', true) +
+      pad('',        19, ' ', true) +
+      '   ' +
+      odfi +
+      '   ' +
+      bNumStr
+    );
+
+    fileHash    += bHash;
+    fileCredit  += bCredit;
+    fileDebit   += bDebit;
+    fileEACount += bEACount;
+  });
+
+  // ── TYPE 9: FILE CONTROL ─────────────────────────────────
+  const blockCount = Math.ceil((lines.length + 1) / 10);
+  lines.push(
+    '9' +
+    pad(batchNum,    6, '0') +
+    pad(blockCount,  6, '0') +
+    pad(fileEACount, 8, '0') +
+    pad(String(fileHash).slice(-10), 10, '0') +
+    fmtAmt(fileDebit,  12) +
+    fmtAmt(fileCredit, 12) +
+    pad('', 39, ' ', true)
+  );
+
+  // Pad to multiple of 10
+  const padNeeded = (10 - (lines.length % 10)) % 10;
+  for (let i = 0; i < padNeeded; i++) lines.push('9'.repeat(94));
+
+  // Verify all lines = 94 chars
+  lines.forEach((l, i) => {
+    if (l.length !== 94)
+      throw new Error(`Line ${i+1} length error: got ${l.length} chars (need 94)\nRecord starts: "${l.substring(0,30)}"`);
+  });
+
+  return lines;
+}
+
+// ── PREVIEW ───────────────────────────────────────────────────
+function generatePreview() {
+  const errBox = document.getElementById('errorBox');
+  errBox.style.display = 'none';
+  try {
+    const lines  = buildACH();
+    const colors = { '1':'#7a9fff','5':'#3d7fff','6':'#00e5a0','7':'#ff6b35','8':'#b07eff','9':'#ff7ab0' };
+    document.getElementById('previewBox').innerHTML = lines.map((line, i) => {
+      const color = colors[line[0]] || '#5a6080';
+      return `<span style="color:${color}">${String(i+1).padStart(3,' ')}  ${line.replace(/</g,'&lt;')}</span>`;
+    }).join('\n');
+    // Auto-populate parser textarea with generated lines
+    const parserIn = document.getElementById('parserInput');
+    if (parserIn) parserIn.value = lines.join('\n');
+  } catch(e) {
+    errBox.textContent = e.message;
+    errBox.style.display = 'block';
+    document.getElementById('previewBox').textContent = '';
+  }
+}
+
+// ── DOWNLOAD ──────────────────────────────────────────────────
+function downloadACH() {
+  const errBox = document.getElementById('errorBox');
+  errBox.style.display = 'none';
+  try {
+    const lines = buildACH();
+    const blob  = new Blob([lines.join('\n')], { type:'text/plain' });
+    const url   = URL.createObjectURL(blob);
+    const a     = document.createElement('a');
+    const n     = new Date();
+    a.href      = url;
+    a.download  = `ACH_${n.getFullYear()}${String(n.getMonth()+1).padStart(2,'0')}${String(n.getDate()).padStart(2,'0')}_${now4()}.ach`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    errBox.textContent = e.message;
+    errBox.style.display = 'block';
+  }
+}
+
+// ── SAMPLE ────────────────────────────────────────────────────
+function loadSample() {
+  document.getElementById('entriesBody').innerHTML = '';
+  eid = 0;
+  document.getElementById('errorBox').style.display = 'none';
+
+  // Sample covers all 5 SEC codes
+  // Note: Two PPD entries + one more PPD = ONE PPD batch with 3 type-6 records
+  // Two CCD entries = ONE CCD batch with 2 type-6 + 2 type-7 records
+  // One CTX = ONE CTX batch with 1 type-6 + 4 type-7 records
+  // One WEB, one TEL = separate batches, no addenda
+
+  const rows = [
+    { name:'John Smith',     acct:'123456789',    route:'021000021', amt:'1500.00', txn:'22', sec:'PPD', addenda:'' },
+    { name:'Jane Doe',       acct:'987654321',    route:'021000021', amt:'2200.00', txn:'22', sec:'PPD', addenda:'' },
+    { name:'ABC Corp',       acct:'111222333444', route:'026009593', amt:'5000.00', txn:'22', sec:'CCD', addenda:'INV-2026-001 Payment' },
+    { name:'XYZ Ltd',        acct:'555666777888', route:'026009593', amt:'7500.00', txn:'27', sec:'CCD', addenda:'INV-2026-002 Refund'  },
+    { name:'Bob Jones',      acct:'444555666',    route:'021000021', amt:'800.00',  txn:'32', sec:'PPD', addenda:'' },
+    { name:'Online Customer',acct:'777888999',    route:'121000248', amt:'350.00',  txn:'22', sec:'WEB', addenda:'' },
+    { name:'MegaCorp Inc',   acct:'999000111222', route:'121000248', amt:'25000.00',txn:'22', sec:'CTX', addenda:'INVOICE 2026-100\nPO NUMBER PO-88821\nVENDOR ID V-4421\nPERIOD JAN 2026' },
+    { name:'Phone Auth Pay', acct:'321654987',    route:'071000288', amt:'450.00',  txn:'27', sec:'TEL', addenda:'' },
+  ];
+
+  rows.forEach(r => addEntry(r));
+  setTimeout(() => { refresh(); generatePreview(); }, 150);
+}
+
+
+// ── FIELD DEFINITIONS FOR EACH RECORD TYPE ───────────────────
+// Each field: [label, start (1-based), end (1-based)]
+const FIELD_DEFS = {
+  '1': [
+    ['Record Type Code',           1,  1 ],
+    ['Priority Code',              2,  3 ],
+    ['Immediate Destination',      4,  13],
+    ['Immediate Origin',           14, 23],
+    ['File Creation Date (YYMMDD)',24, 29],
+    ['File Creation Time (HHMM)',  30, 33],
+    ['File ID Modifier',           34, 34],
+    ['Record Size',                35, 37],
+    ['Blocking Factor',            38, 39],
+    ['Format Code',                40, 40],
+    ['Immediate Destination Name', 41, 63],
+    ['Immediate Origin Name',      64, 86],
+    ['Reference Code',             87, 94],
+  ],
+  '5': [
+    ['Record Type Code',           1,  1 ],
+    ['Service Class Code',         2,  4 ],
+    ['Company Name',               5,  20],
+    ['Company Discretionary Data', 21, 40],
+    ['Company Identification',     41, 50],
+    ['Standard Entry Class (SEC)', 51, 53],
+    ['Company Entry Description',  54, 63],
+    ['Company Descriptive Date',   64, 69],
+    ['Effective Entry Date',       70, 75],
+    ['Settlement Date (Julian)',   76, 78],
+    ['Originator Status Code',     79, 79],
+    ['ODFI Routing Transit',       80, 87],
+    ['Batch Number',               88, 94],
+  ],
+  '6': [
+    ['Record Type Code',           1,  1 ],
+    ['Transaction Code',           2,  3 ],
+    ['Receiving DFI Routing',      4,  11],
+    ['Check Digit',                12, 12],
+    ['DFI Account Number',         13, 29],
+    ['Amount (cents)',             30, 39],
+    ['Individual Identification',  40, 54],
+    ['Individual Name',            55, 76],
+    ['Discretionary Data',         77, 78],
+    ['Addenda Record Indicator',   79, 79],
+    ['Trace Number',               80, 94],
+  ],
+  '7': [
+    ['Record Type Code',           1,  1 ],
+    ['Addenda Type Code',          2,  3 ],
+    ['Payment Related Information',4,  83],
+    ['Sequence Number',            84, 87],
+    ['Entry Detail Sequence',      88, 94],
+  ],
+  '8': [
+    ['Record Type Code',           1,  1 ],
+    ['Service Class Code',         2,  4 ],
+    ['Entry/Addenda Count',        5,  10],
+    ['Entry Hash',                 11, 20],
+    ['Total Debit Dollar Amount',  21, 32],
+    ['Total Credit Dollar Amount', 33, 44],
+    ['Company Identification',     45, 54],
+    ['Message Authentication Code',55, 73],
+    ['Reserved',                   74, 76],
+    ['ODFI Routing Transit',       77, 84],
+    ['Reserved',                   85, 87],
+    ['Batch Number',               88, 94],
+  ],
+  '9': [
+    ['Record Type Code',           1,  1 ],
+    ['Batch Count',                2,  7 ],
+    ['Block Count',                8,  13],
+    ['Entry/Addenda Count',        14, 21],
+    ['Entry Hash',                 22, 31],
+    ['Total Debit Dollar Amount',  32, 43],
+    ['Total Credit Dollar Amount', 44, 55],
+    ['Reserved',                   56, 94],
+  ],
+};
+
+const RECORD_NAMES = {
+  '1':'File Header',
+  '5':'Batch Header',
+  '6':'Entry Detail',
+  '7':'Addenda Record',
+  '8':'Batch Control',
+  '9':'File Control / Padding',
+};
+
+function fmtFieldValue(label, raw) {
+  const v = raw.trim();
+  if (!v) return { display: '(blank)', blank: true };
+  // Format amounts
+  if (label.includes('Amount') && /^\d+$/.test(v)) {
+    const cents = parseInt(v);
+    return { display: '$' + (cents/100).toLocaleString('en-US',{minimumFractionDigits:2}), blank: false };
+  }
+  return { display: v, blank: false };
+}
+
+function renderParser(lines) {
+  const container = document.getElementById('parseOutput');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const BADGE_NAMES = {
+    '1':'FILE HDR','5':'BATCH HDR','6':'ENTRY','7':'ADDENDA','8':'BATCH CTL','9':'FILE CTL'
+  };
+
+  lines.forEach((line, lineIdx) => {
+    if (!line || line.length === 0) return;
+    const type = line[0];
+    const isPad = (type === '9' && line === '9'.repeat(94));
+
+    const rec = document.createElement('div');
+    rec.className = 'parse-record';
+
+    const badgeName = BADGE_NAMES[type] || type;
+    const recName   = RECORD_NAMES[type] || `Record Type ${type}`;
+
+    // Get a summary snippet for header preview
+    let summary = '';
+    if (type === '1') summary = line.substring(40,63).trim();
+    else if (type === '5') summary = line.substring(4,20).trim() + ' · ' + line.substring(50,53).trim();
+    else if (type === '6') summary = line.substring(54,76).trim() + ' · $' + (parseInt(line.substring(29,39))/100).toFixed(2);
+    else if (type === '7') summary = line.substring(3,43).trim();
+    else if (type === '8') summary = 'Entries: ' + line.substring(4,10).trim();
+    else if (type === '9' && !isPad) summary = 'Batches: ' + line.substring(1,7).trim();
+    else if (isPad) summary = 'Block padding';
+
+    rec.innerHTML = `
+      <div class="parse-record-header" onclick="toggleParseRecord(this)">
+        <span class="parse-rec-badge pbadge-${isPad?'pad':type}">${isPad?'PAD':badgeName}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--muted);min-width:28px">L${lineIdx+1}</span>
+        <span class="parse-rec-title">${isPad ? 'Padding Record' : recName}</span>
+        <span class="parse-rec-raw">${summary}</span>
+        <span class="parse-chevron">▼</span>
+      </div>
+      <div class="parse-record-body">
+        <div class="parse-raw-full">${line}</div>
+        ${isPad
+          ? '<div style="color:var(--muted);font-size:0.75rem">Block padding — fills to multiple of 10 records</div>'
+          : renderFieldTable(line, type)
+        }
+      </div>
+    `;
+    container.appendChild(rec);
+  });
+}
+
+function renderFieldTable(line, type) {
+  const defs = FIELD_DEFS[type];
+  if (!defs) return '<div style="color:var(--muted);font-size:0.75rem">No field definitions for this record type.</div>';
+
+  const rows = defs.map(([label, start, end]) => {
+    // start/end are 1-based, substring is 0-based
+    const raw = line.substring(start-1, end);
+    const fmt = fmtFieldValue(label, raw);
+    const len = end - start + 1;
+    return `
+      <tr>
+        <td class="pos-start">${start}</td>
+        <td class="pos-end">${end}</td>
+        <td class="pos-len">(${len})</td>
+        <td class="field-label-cell">${label}</td>
+        <td class="field-value-cell${fmt.blank?' blank':''}">${fmt.display}</td>
+      </tr>`;
+  }).join('');
+
+  return `
+    <table class="parse-fields-table">
+      <thead>
+        <tr>
+          <th style="width:45px">Start</th>
+          <th style="width:40px">End</th>
+          <th style="width:40px">Len</th>
+          <th>Field Label</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function toggleParseRecord(header) {
+  const rec = header.closest('.parse-record');
+  rec.classList.toggle('open');
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// STANDALONE NACHA PARSER
+// ══════════════════════════════════════════════════════════════
+
+// Field definitions: [Label, posStart (1-based), posEnd (1-based)]
+const PARSER_FIELDS = {
+  '1': [
+    ['Record Type Code',              1,  1  ],
+    ['Priority Code',                 2,  3  ],
+    ['Immediate Destination Routing', 4,  13 ],
+    ['Immediate Origin Routing',      14, 23 ],
+    ['File Creation Date (YYMMDD)',   24, 29 ],
+    ['File Creation Time (HHMM)',     30, 33 ],
+    ['File ID Modifier',              34, 34 ],
+    ['Record Size',                   35, 37 ],
+    ['Blocking Factor',               38, 39 ],
+    ['Format Code',                   40, 40 ],
+    ['Immediate Destination Name',    41, 63 ],
+    ['Immediate Origin Name',         64, 86 ],
+    ['Reference Code',                87, 94 ],
+  ],
+  '5': [
+    ['Record Type Code',              1,  1  ],
+    ['Service Class Code',            2,  4  ],
+    ['Company Name',                  5,  20 ],
+    ['Company Discretionary Data',    21, 40 ],
+    ['Company Identification',        41, 50 ],
+    ['Standard Entry Class Code (SEC)',51,53 ],
+    ['Company Entry Description',     54, 63 ],
+    ['Company Descriptive Date',      64, 69 ],
+    ['Effective Entry Date (YYMMDD)', 70, 75 ],
+    ['Settlement Date (Julian DDD)',  76, 78 ],
+    ['Originator Status Code',        79, 79 ],
+    ['ODFI Routing Transit Number',   80, 87 ],
+    ['Batch Number',                  88, 94 ],
+  ],
+  '6': [
+    ['Record Type Code',              1,  1  ],
+    ['Transaction Code',              2,  3  ],
+    ['Receiving DFI Routing (8 dig)', 4,  11 ],
+    ['Check Digit',                   12, 12 ],
+    ['DFI Account Number',            13, 29 ],
+    ['Amount (in cents)',             30, 39 ],
+    ['Individual Identification No',  40, 54 ],
+    ['Individual Name',               55, 76 ],
+    ['Discretionary Data',            77, 78 ],
+    ['Addenda Record Indicator',      79, 79 ],
+    ['Trace Number',                  80, 94 ],
+  ],
+  '7': [
+    ['Record Type Code',              1,  1  ],
+    ['Addenda Type Code',             2,  3  ],
+    ['Payment Related Information',   4,  83 ],
+    ['Sequence Number',               84, 87 ],
+    ['Entry Detail Sequence Number',  88, 94 ],
+  ],
+  '8': [
+    ['Record Type Code',              1,  1  ],
+    ['Service Class Code',            2,  4  ],
+    ['Entry / Addenda Count',         5,  10 ],
+    ['Entry Hash',                    11, 20 ],
+    ['Total Debit Dollar Amount',     21, 32 ],
+    ['Total Credit Dollar Amount',    33, 44 ],
+    ['Company Identification',        45, 54 ],
+    ['Message Authentication Code',   55, 73 ],
+    ['Reserved',                      74, 76 ],
+    ['ODFI Routing Transit Number',   77, 84 ],
+    ['Reserved',                      85, 87 ],
+    ['Batch Number',                  88, 94 ],
+  ],
+  '9': [
+    ['Record Type Code',              1,  1  ],
+    ['Batch Count',                   2,  7  ],
+    ['Block Count',                   8,  13 ],
+    ['Entry / Addenda Count',         14, 21 ],
+    ['Entry Hash',                    22, 31 ],
+    ['Total Debit Dollar Amount',     32, 43 ],
+    ['Total Credit Dollar Amount',    44, 55 ],
+    ['Reserved',                      56, 94 ],
+  ],
+};
+
+const REC_NAMES  = { '1':'File Header','5':'Batch Header','6':'Entry Detail','7':'Addenda Record','8':'Batch Control','9':'File Control' };
+const REC_BADGE  = { '1':'FILE HDR',   '5':'BATCH HDR',  '6':'ENTRY',        '7':'ADDENDA',       '8':'BATCH CTL',   '9':'FILE CTL'   };
+const REC_PCLS   = { '1':'pb1','5':'pb5','6':'pb6','7':'pb7','8':'pb8','9':'pb9' };
+
+function parseGenerated() {
+  try {
+    const lines = buildACH();
+    document.getElementById('parserInput').value = lines.join('\n');
+    parseInput();
+  } catch(e) {
+    const eb = document.getElementById('errorBox');
+    eb.textContent = e.message;
+    eb.style.display = 'block';
+  }
+}
+
+function parseInput() {
+  const raw = document.getElementById('parserInput').value;
+  const lines = raw.split('\n').map(l => l.trimEnd()).filter(l => l.length > 0);
+  const out = document.getElementById('parserOutput');
+  out.innerHTML = '';
+
+  if (lines.length === 0) {
+    out.innerHTML = '<div style="color:var(--muted);font-size:0.8rem">No records to parse.</div>';
+    return;
+  }
+
+  lines.forEach((line, li) => {
+    const type = line[0];
+    const isPad = (type === '9' && /^9+$/.test(line.trim()));
+
+    const rec = document.createElement('div');
+    rec.className = 'pr-record';
+
+    // Summary snippet for header
+    let summary = '';
+    try {
+      if (type==='1') summary = line.substring(40,63).trim();
+      else if (type==='5') summary = line.substring(4,20).trim() + ' · SEC:' + line.substring(50,53).trim();
+      else if (type==='6') summary = line.substring(54,76).trim() + '  $' + (parseInt(line.substring(29,39)||0)/100).toFixed(2);
+      else if (type==='7') summary = line.substring(3,53).trim();
+      else if (type==='8') summary = 'Entries:' + line.substring(4,10).trim() + '  Hash:' + line.substring(10,20).trim();
+      else if (type==='9'&&!isPad) summary = 'Batches:' + line.substring(1,7).trim() + '  Entries:' + line.substring(13,21).trim();
+      else if (isPad) summary = 'Block padding (9s)';
+    } catch(e) {}
+
+    const badgeCls = isPad ? 'pbPAD' : (REC_PCLS[type]||'pbPAD');
+    const badgeTxt = isPad ? 'PAD'   : (REC_BADGE[type]||type);
+    const titleTxt = isPad ? 'Padding Record' : (REC_NAMES[type]||'Unknown Record Type '+type);
+
+    rec.innerHTML = `
+      <div class="pr-rec-hdr" onclick="this.closest('.pr-record').classList.toggle('open')">
+        <span class="pr-badge ${badgeCls}">${badgeTxt}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:var(--muted);min-width:32px">L${li+1}</span>
+        <span class="pr-rec-title">${titleTxt}</span>
+        <span class="pr-rec-summary">${summary}</span>
+        <span class="pr-chevron">▼</span>
+      </div>
+      <div class="pr-rec-body">
+        <di<div class="pr-raw">${escHtml(line)}</div>
+        ${isPad
+          ? '<div style="color:var(--muted);font-size:0.78rem;padding:0.5rem 0">All 9s — fills block to multiple of 10 records.</div>'
+          : buildFieldRows(line, type)}      </div>
+    `;
+    out.appendChild(rec);
+  });
+}
+
+function buildRuler(len) {
+  // Position numbers every 10 chars
+  let ruler = '';
+  for (let i = 1; i <= len; i++) {
+    if (i === 1 || i % 10 === 0) {
+      ruler += String(i).padEnd(10, ' ').substring(0, 10);
+    }
+  }
+  return escHtml(ruler);
+}
+
+function buildFieldRows(line, type) {
+  const defs = PARSER_FIELDS[type];
+  if (!defs) return `<div style="color:var(--muted);font-size:0.78rem;padding:0.5rem">No field map for record type ${type}</div>`;
+
+  const stripeClass = `stripe-${type}`;
+
+  const cards = defs.map(([label, start, end]) => {
+    const raw     = line.substring(start - 1, end);
+    const len     = end - start + 1;
+    const trimmed = raw.trim();
+
+    // Determine display value and colour class
+    let display = trimmed === '' ? '(blank)' : trimmed;
+    let cls = trimmed === '' ? ' blank' : '';
+
+    if ((label.includes('Dollar Amount') || label.includes('Amount (in cents)')) && /^\d+$/.test(trimmed) && trimmed !== '') {
+      const cents = parseInt(trimmed);
+      display = '$' + (cents / 100).toLocaleString('en-US', { minimumFractionDigits:2 });
+      cls = ' amount';
+    } else if (label.toLowerCase().includes('routing') && /^\d{7,9}$/.test(trimmed)) {
+      cls = ' route';
+    } else if (label.includes('SEC') && /^[A-Z]{3}$/.test(trimmed)) {
+      cls = ' sec';
+    } else if ((label.includes('Transaction Code') || label.includes('Service Class') || label.includes('Type Code') || label.includes('Addenda Type')) && /^\d+$/.test(trimmed)) {
+      cls = ' code';
+    } else if (label.toLowerCase().includes('date') && /^\d{5,6}$/.test(trimmed)) {
+      cls = ' date';
+    }
+
+    const posText = start === end
+      ? `${start} (len ${len})`
+      : `${start}–${end} (len ${len})`;
+
+    return `<div class="pr-fc">
+        <div class="pr-fc-stripe ${stripeClass}"></div>
+        <div class="pr-fc-inner">
+          <div class="pr-fc-label">${label}</div>
+          <div class="pr-fc-pos">pos ${posText}</div>
+          <div class="pr-fc-val${cls}">${escHtml(display)}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  return `<div class="pr-fields">${cards}</div>`;
+}
+
+
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+init();
+</script>
+
+<!-- STANDALONE PARSER -->
+<div class="section" id="parserSection">
+  <div class="section-title">NACHA Record Parser</div>
+  <p style="font-size:0.78rem;color:var(--muted);margin-bottom:1rem;">
+    Paste any ACH file below — or click <strong style="color:var(--accent)">Parse Generated File</strong> to parse what was just built.
+    Every field shown with label, position, and current value.
+  </p>
+  <textarea class="parser-input-box" id="parserInput"
+    placeholder="Paste ACH file here (one 94-char record per line)...&#10;Or click Parse Generated File above to auto-fill from the builder."></textarea>
+  <div class="btn-row" style="margin-top:0.75rem;margin-bottom:1.25rem;">
+    <button class="btn-primary"   onclick="parseInput()">Parse</button>
+    <button class="btn-secondary" onclick="parseGenerated()">Parse Generated File</button>
+    <button class="btn-secondary" onclick="document.getElementById('parserInput').value='';document.getElementById('parserOutput').innerHTML=''">Clear</button>
+  </div>
+  <div id="parserOutput"></div>
+</div>
+
+</body>
+</html>
