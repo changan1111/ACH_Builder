@@ -19,6 +19,65 @@
     --danger: #ff4f4f;
   }
 
+  body.light {
+    --bg: #f0f2f7;
+    --surface: #ffffff;
+    --surface2: #e8ecf5;
+    --border: #d0d6e8;
+    --accent: #00a372;
+    --accent2: #2a6fff;
+    --text: #1a1d2e;
+    --muted: #7a82a0;
+    --danger: #e03030;
+  }
+
+  /* ── THEME TOGGLE ──────────────────────────────────── */
+  .theme-toggle {
+    position: fixed; top: 1.25rem; right: 1.25rem; z-index: 1000;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 50px; padding: 0.35rem 0.9rem;
+    display: flex; align-items: center; gap: 0.5rem;
+    cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+    user-select: none;
+  }
+  .theme-toggle:hover { border-color: var(--accent); box-shadow: 0 2px 18px rgba(0,0,0,0.28); }
+  .theme-toggle-icon { font-size: 1rem; line-height: 1; transition: transform 0.4s ease; }
+  .theme-toggle:hover .theme-toggle-icon { transform: rotate(22deg); }
+  .theme-toggle-label {
+    font-family: 'Syne', sans-serif; font-size: 0.68rem; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); transition: color 0.2s;
+  }
+  .theme-toggle:hover .theme-toggle-label { color: var(--text); }
+
+  /* Light mode component overrides */
+  body.light input, body.light select, body.light textarea { background: #f8f9fc; color: var(--text); border-color: var(--border); }
+  body.light input.auto { color: var(--accent2); border-color: #b0c4f0; }
+  body.light .client-btn { color: var(--muted); border-color: var(--border); background: transparent; }
+  body.light .client-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  body.light .preview-box { background: #f8f9fc; }
+  body.light .pr-raw { background: #f0f3fa; border-color: var(--border); color: #5a6a8a; }
+  body.light .pr-fc { background: #f8f9fc; border-color: var(--border); }
+  body.light .pr-fc-inner { background: #f8f9fc; }
+  body.light .pr-fc-pos { background: #eef1f8; border-color: #c8d0e8; color: #4a6aaa; }
+  body.light .pr-fc-val { color: #1a2a4a; }
+  body.light .pr-fc-val.blank { color: #c0c8e0; font-style: italic; }
+  body.light .pr-fc-val.amount { color: var(--accent); }
+  body.light .pr-fc-val.route  { color: var(--accent2); }
+  body.light .pr-rec-hdr { background: var(--surface2); }
+  body.light .pr-record.open .pr-rec-hdr { background: #e4eaf8; border-left-color: var(--accent2); }
+  body.light .pr-rec-body { background: var(--bg); border-color: var(--border); }
+  body.light .totals-bar { background: var(--surface2); border-color: var(--border); }
+  body.light .batch-chip { background: var(--surface2); border-color: var(--border); }
+  body.light thead tr { background: var(--surface2); }
+  body.light tbody tr:hover { background: var(--surface2); }
+  body.light .parser-input-box { background: #f8f9fc; color: var(--text); }
+  body.light .error-msg { background: #fff0f0; border-color: #f0b0b0; color: #c03030; }
+  body.light .del-btn { border-color: #f0d0d0; }
+  body.light .del-btn:hover { background: #fff0f0; }
+  body.light .pr-line-num { color: #b0b8d0; }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Syne', sans-serif; min-height: 100vh; padding: 2rem; }
 
@@ -222,6 +281,12 @@
 </style>
 </head>
 <body>
+
+<!-- THEME TOGGLE -->
+<div class="theme-toggle" onclick="toggleTheme()" title="Toggle day/night mode">
+  <span class="theme-toggle-icon" id="themeIcon">🌙</span>
+  <span class="theme-toggle-label" id="themeLabel">Night</span>
+</div>
 
 <h1>ACH Builder</h1>
 <p class="subtitle">Per-Entry SEC Code · Auto-Batch Grouping · Multi-SEC · NACHA Compliant</p>
@@ -479,14 +544,16 @@ function generateCCDAddenda(id) {
 
 // ── CTX ADDENDA GENERATOR ────────────────────────────────────
 function generateCTXAddenda(id) {
-  const name   = document.getElementById(`ename-${id}`)?.value.trim()  || 'RECEIVER';
-  const amtRaw = parseFloat(document.getElementById(`eamt-${id}`)?.value || 0) || 0;
-  const amtFmt = amtRaw.toLocaleString('en-US',{minimumFractionDigits:2});
+  const name    = document.getElementById(`ename-${id}`)?.value.trim()  || 'RECEIVER';
+  const acct    = document.getElementById(`eacct-${id}`)?.value.trim()  || '000000000';
+  const routing = document.getElementById(`eroute-${id}`)?.value.trim() || '000000000';
+  const amtRaw  = parseFloat(document.getElementById(`eamt-${id}`)?.value || 0) || 0;
+  const amtFmt  = amtRaw.toLocaleString('en-US',{minimumFractionDigits:2});
 
-  showCTXModal(id, name, amtFmt);
+  showCTXModal(id, name, amtFmt, acct, routing);
 }
 
-function showCTXModal(id, name, amtFmt) {
+function showCTXModal(id, name, amtFmt, acct, routing) {
   // Remove any existing modal
   document.getElementById('achModal')?.remove();
 
@@ -583,10 +650,12 @@ function showCTXModal(id, name, amtFmt) {
 
   document.body.appendChild(overlay);
 
-  // Store context
+  // Store context on overlay element for access by ctxApplyTemplate
   overlay._entryId  = id;
   overlay._name     = name;
   overlay._amtFmt   = amtFmt;
+  overlay._acct     = acct    || '';
+  overlay._routing  = routing || '';
 
   // Default to 3 lines
   ctxSetCount(3);
@@ -598,9 +667,8 @@ function ctxSetCount(n) {
   n = Math.max(1, Math.min(9999, n || 1));
   _ctxCount = n;
 
-  // Highlight selected button
   [1,2,3,4,5,6,8,10].forEach(x => {
-    const b = document.getElementById(`ctxCntBtn-${x}`);
+    const b = document.getElementById('ctxCntBtn-' + x);
     if (!b) return;
     if (x === n) {
       b.style.background = '#2a1f10'; b.style.color = '#ffb34d'; b.style.borderColor = '#ffb34d';
@@ -612,76 +680,242 @@ function ctxSetCount(n) {
   const container = document.getElementById('ctxLineFields');
   if (!container) return;
 
-  // Preserve existing values
-  const existing = [];
-  container.querySelectorAll('input[data-ctxline]').forEach(el => existing.push(el.value));
-
+  // Save what the user already typed
+  const existing = Array.from(container.querySelectorAll('input[data-ctxline]')).map(el => el.value);
   container.innerHTML = '';
+
   for (let i = 0; i < n; i++) {
-    const div = document.createElement('div');
-    div.style.cssText = 'display:flex;align-items:center;gap:0.5rem';
-    div.innerHTML = `
-      <span style="font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:#2a3a5a;
-                   min-width:40px;text-align:right">${String(i+1).padStart(4,'0')}</span>
-      <input data-ctxline="${i}" type="text" maxlength="80"
-        placeholder="Addenda line ${i+1} (max 80 chars)"
-        value="${(existing[i]||'').replace(/"/g,'&quot;')}"
-        style="flex:1;font-family:'JetBrains Mono',monospace;font-size:0.75rem;
-               background:#0a0c10;border:1px solid #1e2230;border-radius:6px;
-               color:#e8eaf0;padding:0.4rem 0.6rem;outline:none;"
-        onfocus="this.style.borderColor='#ffb34d'"
-        onblur="this.style.borderColor='#1e2230'">
-      <span style="font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:#2a3a5a;min-width:28px"
-            id="ctxLen-${i}">0</span>
-    `;
-    container.appendChild(div);
-    const inp = div.querySelector('input');
-    const lenSpan = div.querySelector(`#ctxLen-${i}`);
-    inp.addEventListener('input', () => {
-      const l = inp.value.length;
-      lenSpan.textContent = l;
-      lenSpan.style.color = l > 75 ? '#ff4f4f' : l > 60 ? '#ffb34d' : '#2a3a5a';
-    });
-    // Trigger initial count display
-    if (existing[i]) { lenSpan.textContent = existing[i].length; }
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:0.5rem;margin-bottom:0.1rem';
+
+    const seq = document.createElement('span');
+    seq.style.cssText = 'font-family:"JetBrains Mono",monospace;font-size:0.62rem;color:#2a3a5a;min-width:40px;text-align:right;flex-shrink:0';
+    seq.textContent = String(i + 1).padStart(4, '0');
+
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.maxLength = 80;
+    inp.setAttribute('data-ctxline', String(i));
+    inp.placeholder = 'Addenda line ' + (i + 1) + ' (max 80 chars)';
+    inp.value = (i < existing.length) ? existing[i] : '';
+    inp.style.cssText = 'flex:1;font-family:"JetBrains Mono",monospace;font-size:0.75rem;background:#0a0c10;border:1px solid #1e2230;border-radius:6px;color:#e8eaf0;padding:0.4rem 0.6rem;outline:none;';
+    inp.addEventListener('focus', function(){ this.style.borderColor='#ffb34d'; });
+    inp.addEventListener('blur',  function(){ this.style.borderColor='#1e2230'; });
+
+    const len = document.createElement('span');
+    len.style.cssText = 'font-family:"JetBrains Mono",monospace;font-size:0.55rem;min-width:28px;text-align:right;flex-shrink:0';
+    const upd = function() {
+      var l = inp.value.length;
+      len.textContent = l;
+      len.style.color = l > 75 ? '#ff4f4f' : l > 60 ? '#ffb34d' : '#2a3a5a';
+    };
+    inp.addEventListener('input', upd);
+    upd();
+
+    row.appendChild(seq);
+    row.appendChild(inp);
+    row.appendChild(len);
+    container.appendChild(row);
   }
 }
 
+// Each template defines a POOL of lines (most to least important order).
+// ctxApplyTemplate fills exactly _ctxCount rows from the top of the pool.
+// If user picked more rows than the pool has, extra rows get blank placeholders.
 const _ctxTemplates = {
   invoice: [
     'INVOICE {INV} TOTAL DUE ${AMT}',
     'INVOICE DATE {DATE} DUE DATE {DUE}',
     'PAYMENT FOR SERVICES RENDERED',
+    'VENDOR {VENDOR} REF {REF}',
+    'TERMS NET30 CURRENCY USD',
+    'CONTACT {NAME} DEPT ACCOUNTS PAYABLE',
+    'BATCH REF {BATCH} PERIOD {PERIOD}',
+    'APPROVED BY {APPROVER} ON {DATE}',
+    'BANK REF {BANKREF} ROUTING {ROUTING}',
+    'NOTES {NOTES}',
   ],
   po: [
     'PO NUMBER PO-{PO} DATED {DATE}',
     'VENDOR ID V-{VID} CONTRACT C-{CTR}',
     'PAYMENT TERMS NET30',
+    'SHIP TO {SHIPTO} ATTN {ATTN}',
+    'ITEM QTY {QTY} UNIT PRICE ${PRICE}',
+    'DISCOUNT {DISC}% APPLIED AMT ${DISCAMT}',
+    'FREIGHT ${FREIGHT} HANDLING ${HANDLING}',
+    'TAX ${TAX} SUBTOTAL ${SUBTOTAL}',
+    'AUTHORIZED BY {AUTH} DATE {DATE}',
+    'NOTES {NOTES}',
   ],
   edi: [
     'BPR*C*{AMT}*C*ACH*CTX*01*{ROUTING}*DA*{ACCT}*{DATE}',
     'TRN*1*{TRN}*{ORIGID}',
     'DTM*097*{DATE}',
     'N1*PE*{NAME}*91*{ID}',
+    'N1*PR*{PAYER}*91*{PAYERID}',
+    'RMR*IV*{INV}**{AMT}',
+    'DTM*003*{INVDATE}',
+    'DTM*004*{DUEDATE}',
+    'REF*PO*{PO}',
+    'REF*VN*{VID}',
   ],
   remit: [
     'REMITTANCE INFO FOR {NAME}',
     'INVOICE {INV} AMT ${AMT}',
     'DISCOUNT $0.00 ADJUSTMENT $0.00',
     'NET PAYMENT ${AMT}',
+    'PAYMENT DATE {DATE} REF {REF}',
+    'BANK {BANK} ACCT {ACCT} ABA {ROUTING}',
+    'PERIOD {PERIOD} DEPT {DEPT}',
+    'PO {PO} CONTRACT {CTR}',
+    'APPROVED BY {APPROVER}',
+    'NOTES {NOTES}',
   ],
 };
 
+// ── RANDOM VALUE GENERATORS ─────────────────────────────────
+function _rnd(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function _rndId(prefix, digits) { return prefix + String(_rnd(1000, 99999)).padStart(digits, '0'); }
+
+function _ctxAutoVals(overlay) {
+  const amt     = (overlay && overlay._amtFmt)  || '0.00';
+  const acct    = (overlay && overlay._acct)     || '000000000';
+  const routing = (overlay && overlay._routing)  || '000000000';
+  const name    = (overlay && overlay._name)     || 'RECEIVER';
+
+  // Today formatted YYYY-MM-DD
+  const now      = new Date();
+  const ymd      = now.getFullYear() + '-' +
+                   String(now.getMonth()+1).padStart(2,'0') + '-' +
+                   String(now.getDate()).padStart(2,'0');
+  // Due = 30 days out
+  const due      = new Date(now.getTime() + 30*864e5);
+  const dueYmd   = due.getFullYear() + '-' +
+                   String(due.getMonth()+1).padStart(2,'0') + '-' +
+                   String(due.getDate()).padStart(2,'0');
+
+  return {
+    '{AMT}':      amt,
+    '${AMT}':     '$' + amt,
+    '{DATE}':     ymd,
+    '{INVDATE}':  ymd,
+    '{DUEDATE}':  dueYmd,
+    '{DUE}':      dueYmd,
+    '{NAME}':     name,
+    '{ACCT}':     acct,
+    '{ROUTING}':  routing,
+    // Random placeholders
+    '{INV}':      _rndId('INV-', 6),
+    '{PO}':       _rndId('PO-',  5),
+    '{VID}':      _rndId('V-',   4),
+    '{CTR}':      _rndId('C-',   4),
+    '{REF}':      _rndId('REF-', 6),
+    '{TRN}':      _rndId('TRN-', 8),
+    '{ORIGID}':   _rndId('ORG-', 6),
+    '{ID}':       _rndId('ID-',  5),
+    '{PAYERID}':  _rndId('PYR-', 5),
+    '{PAYER}':    name + ' CORP',
+    '{VENDOR}':   name,
+    '{BATCH}':    _rndId('BAT-', 5),
+    '{PERIOD}':   now.toLocaleString('en-US',{month:'short'}).toUpperCase() + ' ' + now.getFullYear(),
+    '{APPROVER}': 'APPROVER',
+    '{BANKREF}':  _rndId('BNK-', 7),
+    '{BANK}':     'BANK',
+    '{DEPT}':     'ACCOUNTS PAYABLE',
+    '{SHIPTO}':   'SHIPPING ADDR',
+    '{ATTN}':     'ATTN RECEIVING',
+    '{QTY}':      String(_rnd(1, 500)),
+    '{PRICE}':    (amt.replace(/,/g,'')),
+    '{DISCAMT}':  '0.00',
+    '{DISC}':     '0',
+    '{FREIGHT}':  '0.00',
+    '{HANDLING}': '0.00',
+    '{TAX}':      '0.00',
+    '{SUBTOTAL}': '$' + amt,
+    '{AUTH}':     'AUTHORIZED',
+    '{NOTES}':    'SEE ATTACHED',
+  };
+}
+
+function _ctxReplace(text, vals) {
+  // Replace {DATE} last after other date variants, avoid double-replacing
+  let out = text;
+  Object.keys(vals).forEach(function(k) { out = out.split(k).join(vals[k]); });
+  return out;
+}
+
+// Ask for date once, then apply template with all substitutions
 function ctxApplyTemplate(tpl) {
-  const lines = _ctxTemplates[tpl];
-  if (!lines) return;
-  ctxSetCount(lines.length);
-  setTimeout(() => {
-    document.querySelectorAll('[data-ctxline]').forEach((inp, i) => {
-      inp.value = lines[i] || '';
-      inp.dispatchEvent(new Event('input'));
-    });
-  }, 30);
+  const pool = _ctxTemplates[tpl];
+  if (!pool) return;
+
+  const overlay = document.getElementById('achModal');
+
+  // Prompt for date — single input mini-overlay inside the modal
+  const today = new Date();
+  const defaultDate = today.getFullYear() + '-' +
+                      String(today.getMonth()+1).padStart(2,'0') + '-' +
+                      String(today.getDate()).padStart(2,'0');
+
+  // Remove any existing date prompt
+  document.getElementById('ctxDatePrompt')?.remove();
+
+  const prompt = document.createElement('div');
+  prompt.id = 'ctxDatePrompt';
+  prompt.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:1rem';
+  prompt.innerHTML = `
+    <div style="background:#111318;border:1px solid #ffb34d;border-radius:12px;padding:1.5rem;width:100%;max-width:320px;box-shadow:0 16px 40px rgba(0,0,0,0.6)">
+      <div style="font-size:0.9rem;font-weight:800;color:#ffb34d;margin-bottom:0.3rem">Payment / Invoice Date</div>
+      <div style="font-size:0.65rem;color:#5a6080;margin-bottom:1rem;letter-spacing:0.06em;text-transform:uppercase">
+        Amount & all other fields are auto-generated
+      </div>
+      <input id="ctxDateInput" type="date" value="${defaultDate}"
+        style="width:100%;font-family:'JetBrains Mono',monospace;font-size:0.85rem;
+               background:#0a0c10;border:1px solid #1e2230;border-radius:6px;
+               color:#e8eaf0;padding:0.55rem 0.75rem;outline:none;margin-bottom:1rem"
+        onfocus="this.style.borderColor='#ffb34d'" onblur="this.style.borderColor='#1e2230'">
+      <div style="display:flex;gap:0.6rem;justify-content:flex-end">
+        <button onclick="document.getElementById('ctxDatePrompt').remove()" style="
+          font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;
+          padding:0.45rem 1rem;border-radius:7px;border:1px solid #1e2230;
+          background:transparent;color:#5a6080;cursor:pointer">Cancel</button>
+        <button onclick="_ctxApplyWithDate('${tpl}')" style="
+          font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;
+          padding:0.45rem 1.1rem;border-radius:7px;border:none;
+          background:#ffb34d;color:#000;cursor:pointer">Apply Template</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(prompt);
+  document.getElementById('ctxDateInput')?.focus();
+}
+
+function _ctxApplyWithDate(tpl) {
+  document.getElementById('ctxDatePrompt')?.remove();
+
+  const pool    = _ctxTemplates[tpl];
+  const overlay = document.getElementById('achModal');
+  const vals    = _ctxAutoVals(overlay);
+
+  // Override dates with user's chosen date
+  const chosenDate = document.getElementById('ctxDateInput')?.value || vals['{DATE}'];
+  // Due = chosen + 30 days
+  const cd  = new Date(chosenDate);
+  const due = new Date(cd.getTime() + 30*864e5);
+  const dueStr = due.getFullYear() + '-' + String(due.getMonth()+1).padStart(2,'0') + '-' + String(due.getDate()).padStart(2,'0');
+
+  vals['{DATE}']    = chosenDate;
+  vals['{INVDATE}'] = chosenDate;
+  vals['{DUEDATE}'] = dueStr;
+  vals['{DUE}']     = dueStr;
+
+  ctxSetCount(_ctxCount);
+  const container = document.getElementById('ctxLineFields');
+  if (!container) return;
+  container.querySelectorAll('input[data-ctxline]').forEach(function(inp, i) {
+    inp.value = pool[i] ? _ctxReplace(pool[i], vals) : '';
+    inp.dispatchEvent(new Event('input'));
+  });
 }
 
 function ctxConfirm(id) {
@@ -1569,7 +1803,25 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// ── THEME TOGGLE ──────────────────────────────────────────────
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('themeIcon').textContent  = isLight ? '☀️' : '🌙';
+  document.getElementById('themeLabel').textContent = isLight ? 'Day'  : 'Night';
+  try { localStorage.setItem('achTheme', isLight ? 'light' : 'dark'); } catch(e){}
+}
+function applyTheme() {
+  try {
+    const saved = localStorage.getItem('achTheme');
+    if (saved === 'light') {
+      document.body.classList.add('light');
+      document.getElementById('themeIcon').textContent  = '☀️';
+      document.getElementById('themeLabel').textContent = 'Day';
+    }
+  } catch(e){}
+}
 init();
+setTimeout(applyTheme, 0);
 </script>
 
 <!-- STANDALONE PARSER -->
