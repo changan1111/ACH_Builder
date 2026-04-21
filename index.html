@@ -415,13 +415,376 @@ function renderAddendaCell(id, sec, prefill) {
   if (rule.addenda === 'none') {
     cell.innerHTML = `<span style="font-size:0.65rem;color:var(--muted);padding:0 0.5rem">—</span>`;
   } else if (rule.addenda === 'optional') {
-    cell.innerHTML = `<input type="text" id="eaddenda-${id}" placeholder="Optional — payment info" style="min-width:170px" oninput="refresh()">`;
+    // CCD — single optional addenda + Generate button
+    cell.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:0.35rem;min-width:200px">
+        <input type="text" id="eaddenda-${id}" placeholder="Optional — payment info" style="width:100%" oninput="refresh()">
+        <button onclick="generateCCDAddenda(${id})" style="
+          font-family:'Syne',sans-serif;font-size:0.65rem;font-weight:700;
+          padding:0.28rem 0.6rem;border-radius:5px;border:1px dashed #1a2a50;
+          background:transparent;color:#7ab0ff;cursor:pointer;text-align:left;
+          transition:all 0.15s;white-space:nowrap;
+        " onmouseover="this.style.borderColor='#7ab0ff';this.style.background='#0d1a30'"
+           onmouseout="this.style.borderColor='#1a2a50';this.style.background='transparent'">
+          ✦ Generate Addenda
+        </button>
+      </div>`;
     if (prefill) document.getElementById(`eaddenda-${id}`).value = prefill;
   } else {
-    // CTX — required, multi-line
-    cell.innerHTML = `<textarea id="eaddenda-${id}" placeholder="Required — one addenda per line&#10;(max 9999 lines)" rows="2" oninput="refresh()"></textarea>`;
+    // CTX — required, multi-line + Generate button
+    cell.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:0.35rem;min-width:210px">
+        <textarea id="eaddenda-${id}" placeholder="Required — one addenda per line&#10;(max 9999 lines)" rows="3" style="width:100%" oninput="refresh()"></textarea>
+        <button onclick="generateCTXAddenda(${id})" style="
+          font-family:'Syne',sans-serif;font-size:0.65rem;font-weight:700;
+          padding:0.28rem 0.6rem;border-radius:5px;border:1px dashed #2a1f10;
+          background:transparent;color:#ffb34d;cursor:pointer;text-align:left;
+          transition:all 0.15s;white-space:nowrap;
+        " onmouseover="this.style.borderColor='#ffb34d';this.style.background='#1a1000'"
+           onmouseout="this.style.borderColor='#2a1f10';this.style.background='transparent'">
+          ✦ Generate Addenda
+        </button>
+      </div>`;
     if (prefill) document.getElementById(`eaddenda-${id}`).value = prefill;
   }
+}
+
+// ── CCD ADDENDA GENERATOR ────────────────────────────────────
+function generateCCDAddenda(id) {
+  // Build a small inline form inside the cell
+  const name    = document.getElementById(`ename-${id}`)?.value.trim()  || 'RECEIVER';
+  const acct    = document.getElementById(`eacct-${id}`)?.value.trim()  || '';
+  const amtRaw  = parseFloat(document.getElementById(`eamt-${id}`)?.value || 0) || 0;
+  const amtFmt  = amtRaw.toLocaleString('en-US',{minimumFractionDigits:2});
+
+  // Show a small modal-style popup anchored to the button
+  showAddendaModal({
+    title: 'Generate CCD Addenda',
+    color: '#7ab0ff',
+    fields: [
+      { key:'ref',   label:'Payment Reference / Invoice #', placeholder:'INV-2026-001',   default:'' },
+      { key:'memo',  label:'Memo / Description',            placeholder:'Payment for services', default:`PAYMENT ${name}` },
+      { key:'amt',   label:'Amount Label (optional)',       placeholder:'e.g. $'+amtFmt,   default:'$'+amtFmt },
+    ],
+    note: 'CCD allows exactly one addenda line (max 80 chars). Result will be trimmed to fit.',
+    onConfirm(vals) {
+      const parts = [vals.ref, vals.memo, vals.amt].filter(Boolean);
+      let text = parts.join(' ');
+      if (text.length > 80) text = text.substring(0, 80);
+      const el = document.getElementById(`eaddenda-${id}`);
+      if (el) { el.value = text; refresh(); }
+    }
+  });
+}
+
+// ── CTX ADDENDA GENERATOR ────────────────────────────────────
+function generateCTXAddenda(id) {
+  const name   = document.getElementById(`ename-${id}`)?.value.trim()  || 'RECEIVER';
+  const amtRaw = parseFloat(document.getElementById(`eamt-${id}`)?.value || 0) || 0;
+  const amtFmt = amtRaw.toLocaleString('en-US',{minimumFractionDigits:2});
+
+  showCTXModal(id, name, amtFmt);
+}
+
+function showCTXModal(id, name, amtFmt) {
+  // Remove any existing modal
+  document.getElementById('achModal')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'achModal';
+  overlay.style.cssText = `
+    position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;
+    display:flex;align-items:center;justify-content:center;padding:1rem;
+  `;
+
+  overlay.innerHTML = `
+    <div style="background:#111318;border:1px solid #1e2230;border-radius:14px;
+                width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:1.5rem;
+                box-shadow:0 24px 60px rgba(0,0,0,0.6);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+        <div>
+          <div style="font-size:1rem;font-weight:800;color:#ffb34d;letter-spacing:-0.02em">Generate CTX Addenda</div>
+          <div style="font-size:0.62rem;color:#5a6080;letter-spacing:0.08em;text-transform:uppercase;margin-top:0.2rem">
+            Each line = one Type 7 record · max 80 chars each
+          </div>
+        </div>
+        <button onclick="document.getElementById('achModal').remove()" style="
+          background:none;border:1px solid #2a1515;border-radius:5px;
+          color:#ff4f4f;cursor:pointer;padding:0.25rem 0.6rem;font-size:0.85rem;">✕</button>
+      </div>
+
+      <!-- How many -->
+      <div style="background:#0a0c10;border:1px solid #1e2230;border-radius:8px;padding:1rem;margin-bottom:1rem">
+        <label style="font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:#5a6080;display:block;margin-bottom:0.5rem">
+          How many addenda lines?
+        </label>
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+          ${[1,2,3,4,5,6,8,10].map(n=>`
+            <button onclick="ctxSetCount(${n})" id="ctxCntBtn-${n}" style="
+              font-family:'Syne',sans-serif;font-weight:700;font-size:0.78rem;
+              padding:0.35rem 0.75rem;border-radius:6px;border:1px solid #1e2230;
+              background:transparent;color:#5a6080;cursor:pointer;transition:all 0.15s;
+            ">${n}</button>
+          `).join('')}
+          <input type="number" id="ctxCustomCount" min="1" max="9999" placeholder="custom"
+            style="width:80px;font-family:'JetBrains Mono',monospace;font-size:0.78rem;
+                   background:#0a0c10;border:1px solid #1e2230;border-radius:6px;
+                   color:#e8eaf0;padding:0.35rem 0.5rem;outline:none;"
+            oninput="ctxSetCount(parseInt(this.value)||1)">
+        </div>
+      </div>
+
+      <!-- Line fields -->
+      <div id="ctxLineFields" style="display:flex;flex-direction:column;gap:0.6rem;margin-bottom:1rem"></div>
+
+      <!-- Template shortcuts -->
+      <div style="margin-bottom:1rem">
+        <div style="font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:#5a6080;margin-bottom:0.4rem">Quick Templates</div>
+        <div style="display:flex;gap:0.45rem;flex-wrap:wrap">
+          <button onclick="ctxApplyTemplate('invoice')" style="
+            font-family:'Syne',sans-serif;font-size:0.65rem;font-weight:700;
+            padding:0.28rem 0.7rem;border-radius:5px;border:1px solid #1e2230;
+            background:transparent;color:#5a6080;cursor:pointer;transition:all 0.15s;
+          " onmouseover="this.style.color='#ffb34d';this.style.borderColor='#ffb34d'"
+             onmouseout="this.style.color='#5a6080';this.style.borderColor='#1e2230'">Invoice</button>
+          <button onclick="ctxApplyTemplate('po')" style="
+            font-family:'Syne',sans-serif;font-size:0.65rem;font-weight:700;
+            padding:0.28rem 0.7rem;border-radius:5px;border:1px solid #1e2230;
+            background:transparent;color:#5a6080;cursor:pointer;transition:all 0.15s;
+          " onmouseover="this.style.color='#ffb34d';this.style.borderColor='#ffb34d'"
+             onmouseout="this.style.color='#5a6080';this.style.borderColor='#1e2230'">PO + Vendor</button>
+          <button onclick="ctxApplyTemplate('edi')" style="
+            font-family:'Syne',sans-serif;font-size:0.65rem;font-weight:700;
+            padding:0.28rem 0.7rem;border-radius:5px;border:1px solid #1e2230;
+            background:transparent;color:#5a6080;cursor:pointer;transition:all 0.15s;
+          " onmouseover="this.style.color='#ffb34d';this.style.borderColor='#ffb34d'"
+             onmouseout="this.style.color='#5a6080';this.style.borderColor='#1e2230'">EDI 820</button>
+          <button onclick="ctxApplyTemplate('remit')" style="
+            font-family:'Syne',sans-serif;font-size:0.65rem;font-weight:700;
+            padding:0.28rem 0.7rem;border-radius:5px;border:1px solid #1e2230;
+            background:transparent;color:#5a6080;cursor:pointer;transition:all 0.15s;
+          " onmouseover="this.style.color='#ffb34d';this.style.borderColor='#ffb34d'"
+             onmouseout="this.style.color='#5a6080';this.style.borderColor='#1e2230'">Remittance</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:0.75rem;justify-content:flex-end">
+        <button onclick="document.getElementById('achModal').remove()" style="
+          font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem;
+          padding:0.55rem 1.2rem;border-radius:8px;border:1px solid #1e2230;
+          background:transparent;color:#5a6080;cursor:pointer;">Cancel</button>
+        <button onclick="ctxConfirm('${id}')" style="
+          font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem;
+          padding:0.55rem 1.4rem;border-radius:8px;border:none;
+          background:#ffb34d;color:#000;cursor:pointer;">Insert Addenda</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  // Store context
+  overlay._entryId  = id;
+  overlay._name     = name;
+  overlay._amtFmt   = amtFmt;
+
+  // Default to 3 lines
+  ctxSetCount(3);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+let _ctxCount = 3;
+function ctxSetCount(n) {
+  n = Math.max(1, Math.min(9999, n || 1));
+  _ctxCount = n;
+
+  // Highlight selected button
+  [1,2,3,4,5,6,8,10].forEach(x => {
+    const b = document.getElementById(`ctxCntBtn-${x}`);
+    if (!b) return;
+    if (x === n) {
+      b.style.background = '#2a1f10'; b.style.color = '#ffb34d'; b.style.borderColor = '#ffb34d';
+    } else {
+      b.style.background = 'transparent'; b.style.color = '#5a6080'; b.style.borderColor = '#1e2230';
+    }
+  });
+
+  const container = document.getElementById('ctxLineFields');
+  if (!container) return;
+
+  // Preserve existing values
+  const existing = [];
+  container.querySelectorAll('input[data-ctxline]').forEach(el => existing.push(el.value));
+
+  container.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;gap:0.5rem';
+    div.innerHTML = `
+      <span style="font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:#2a3a5a;
+                   min-width:40px;text-align:right">${String(i+1).padStart(4,'0')}</span>
+      <input data-ctxline="${i}" type="text" maxlength="80"
+        placeholder="Addenda line ${i+1} (max 80 chars)"
+        value="${(existing[i]||'').replace(/"/g,'&quot;')}"
+        style="flex:1;font-family:'JetBrains Mono',monospace;font-size:0.75rem;
+               background:#0a0c10;border:1px solid #1e2230;border-radius:6px;
+               color:#e8eaf0;padding:0.4rem 0.6rem;outline:none;"
+        onfocus="this.style.borderColor='#ffb34d'"
+        onblur="this.style.borderColor='#1e2230'">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:#2a3a5a;min-width:28px"
+            id="ctxLen-${i}">0</span>
+    `;
+    container.appendChild(div);
+    const inp = div.querySelector('input');
+    const lenSpan = div.querySelector(`#ctxLen-${i}`);
+    inp.addEventListener('input', () => {
+      const l = inp.value.length;
+      lenSpan.textContent = l;
+      lenSpan.style.color = l > 75 ? '#ff4f4f' : l > 60 ? '#ffb34d' : '#2a3a5a';
+    });
+    // Trigger initial count display
+    if (existing[i]) { lenSpan.textContent = existing[i].length; }
+  }
+}
+
+const _ctxTemplates = {
+  invoice: [
+    'INVOICE {INV} TOTAL DUE ${AMT}',
+    'INVOICE DATE {DATE} DUE DATE {DUE}',
+    'PAYMENT FOR SERVICES RENDERED',
+  ],
+  po: [
+    'PO NUMBER PO-{PO} DATED {DATE}',
+    'VENDOR ID V-{VID} CONTRACT C-{CTR}',
+    'PAYMENT TERMS NET30',
+  ],
+  edi: [
+    'BPR*C*{AMT}*C*ACH*CTX*01*{ROUTING}*DA*{ACCT}*{DATE}',
+    'TRN*1*{TRN}*{ORIGID}',
+    'DTM*097*{DATE}',
+    'N1*PE*{NAME}*91*{ID}',
+  ],
+  remit: [
+    'REMITTANCE INFO FOR {NAME}',
+    'INVOICE {INV} AMT ${AMT}',
+    'DISCOUNT $0.00 ADJUSTMENT $0.00',
+    'NET PAYMENT ${AMT}',
+  ],
+};
+
+function ctxApplyTemplate(tpl) {
+  const lines = _ctxTemplates[tpl];
+  if (!lines) return;
+  ctxSetCount(lines.length);
+  setTimeout(() => {
+    document.querySelectorAll('[data-ctxline]').forEach((inp, i) => {
+      inp.value = lines[i] || '';
+      inp.dispatchEvent(new Event('input'));
+    });
+  }, 30);
+}
+
+function ctxConfirm(id) {
+  const inputs = document.querySelectorAll('#achModal [data-ctxline]');
+  const lines = Array.from(inputs).map(i => i.value.trim()).filter(Boolean);
+  if (lines.length === 0) {
+    alert('Please enter at least one addenda line.');
+    return;
+  }
+  const el = document.getElementById(`eaddenda-${id}`);
+  if (el) { el.value = lines.join('\n'); refresh(); }
+  document.getElementById('achModal')?.remove();
+}
+
+// ── CCD MODAL ────────────────────────────────────────────────
+function showAddendaModal({ title, color, fields, note, onConfirm }) {
+  document.getElementById('achModal')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'achModal';
+  overlay.style.cssText = `
+    position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;
+    display:flex;align-items:center;justify-content:center;padding:1rem;
+  `;
+
+  const fieldHtml = fields.map((f,i) => `
+    <div style="display:flex;flex-direction:column;gap:0.35rem">
+      <label style="font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;color:#5a6080">${f.label}</label>
+      <input id="amodal-f${i}" type="text" placeholder="${f.placeholder}"
+        value="${(f.default||'').replace(/"/g,'&quot;')}"
+        style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;
+               background:#0a0c10;border:1px solid #1e2230;border-radius:6px;
+               color:#e8eaf0;padding:0.5rem 0.7rem;outline:none;width:100%"
+        onfocus="this.style.borderColor='${color}'" onblur="this.style.borderColor='#1e2230'">
+    </div>
+  `).join('');
+
+  overlay.innerHTML = `
+    <div style="background:#111318;border:1px solid #1e2230;border-radius:14px;
+                width:100%;max-width:440px;padding:1.5rem;
+                box-shadow:0 24px 60px rgba(0,0,0,0.6);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+        <div style="font-size:1rem;font-weight:800;color:${color};letter-spacing:-0.02em">${title}</div>
+        <button onclick="document.getElementById('achModal').remove()" style="
+          background:none;border:1px solid #2a1515;border-radius:5px;
+          color:#ff4f4f;cursor:pointer;padding:0.25rem 0.6rem;font-size:0.85rem;">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0.85rem;margin-bottom:1rem">${fieldHtml}</div>
+      <div style="background:#0a0c10;border:1px solid #1e2230;border-radius:6px;
+                  padding:0.6rem 0.8rem;margin-bottom:1.25rem">
+        <div style="font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;
+                    color:#5a6080;margin-bottom:0.25rem">Preview</div>
+        <div id="amodal-preview" style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;
+             color:${color};word-break:break-all;line-height:1.6"></div>
+        <div id="amodal-len" style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;
+             color:#5a6080;margin-top:0.3rem"></div>
+      </div>
+      <div style="font-size:0.62rem;color:#5a6080;margin-bottom:1rem">${note}</div>
+      <div style="display:flex;gap:0.75rem;justify-content:flex-end">
+        <button onclick="document.getElementById('achModal').remove()" style="
+          font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem;
+          padding:0.55rem 1.2rem;border-radius:8px;border:1px solid #1e2230;
+          background:transparent;color:#5a6080;cursor:pointer;">Cancel</button>
+        <button id="amodal-confirm" style="
+          font-family:'Syne',sans-serif;font-weight:700;font-size:0.85rem;
+          padding:0.55rem 1.4rem;border-radius:8px;border:none;
+          background:${color};color:#000;cursor:pointer;">Insert Addenda</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+  // Live preview
+  const updatePreview = () => {
+    const vals = fields.map((f,i) => document.getElementById(`amodal-f${i}`)?.value.trim() || '');
+    const obj  = {};
+    fields.forEach((f,i) => obj[f.key] = vals[i]);
+    const parts = vals.filter(Boolean);
+    let text = parts.join(' ');
+    if (text.length > 80) text = text.substring(0,80);
+    const pv = document.getElementById('amodal-preview');
+    const pl = document.getElementById('amodal-len');
+    if (pv) pv.textContent = text || '(fill fields above)';
+    if (pl) {
+      pl.textContent = text ? `${text.length}/80 chars` : '';
+      pl.style.color = text.length > 75 ? '#ff4f4f' : '#5a6080';
+    }
+  };
+
+  fields.forEach((f,i) => {
+    document.getElementById(`amodal-f${i}`)?.addEventListener('input', updatePreview);
+  });
+  updatePreview();
+
+  document.getElementById('amodal-confirm').onclick = () => {
+    const vals = fields.map((f,i) => document.getElementById(`amodal-f${i}`)?.value.trim() || '');
+    const obj  = {};
+    fields.forEach((f,i) => obj[f.key] = vals[i]);
+    onConfirm(obj);
+    overlay.remove();
+  };
 }
 
 function secChanged(id) {
