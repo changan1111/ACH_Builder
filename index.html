@@ -298,9 +298,9 @@
   <div class="form-grid">
     <div class="form-group"><label>Destination Routing</label><input id="destRouting" maxlength="9" placeholder="065070532"></div>
     <div class="form-group"><label>Origin Routing</label><input id="originRouting" maxlength="10" placeholder="0631015352"></div>
-    <div class="form-group"><label>Destination Name</label><input id="destName" maxlength="23" placeholder="SMBC Jenius Bank"></div>
+    <div class="form-group"><label>Destination Name</label><input id="destName" maxlength="23" placeholder="Test Bank"></div>
     <div class="form-group"><label>Origin Name</label><input id="originName" maxlength="23" placeholder="YOUR COMPANY"></div>
-    <div class="form-group"><label>Company Name</label><input id="companyName" maxlength="16" placeholder="SMBC Jenius Bank"></div>
+    <div class="form-group"><label>Company Name</label><input id="companyName" maxlength="16" placeholder="Test Jenius Bank"></div>
     <div class="form-group"><label>Company ID</label><input id="companyId" maxlength="10" placeholder="1234567890"></div>
     <div class="form-group"><label>Company Entry Description</label><input id="companyDesc" maxlength="10" placeholder="PPDPAYMENT"></div>
     <div class="form-group"><label>Effective Date (YYMMDD) <span style="font-size:0.55rem;background:#1a2a50;color:var(--accent2);padding:0.1rem 0.3rem;border-radius:3px;letter-spacing:0">AUTO</span></label><input id="effDate" maxlength="6" class="auto"></div>
@@ -371,11 +371,11 @@
 <script>
 // ── CLIENTS ──────────────────────────────────────────────────
 const CLIENTS = {
-  'SMBC Jenius': { destRouting:'065070532', originRouting:'0631015352', destName:'SMBC Jenius Bank',  originName:'SMBC JENIUS',  companyName:'SMBC Jenius',    companyId:'1234567890', companyDesc:'PPDPAYMENT',  odfiRouting:'06507053' },
-  'BMO':         { destRouting:'071000288', originRouting:'0710002880', destName:'BMO HARRIS BANK',   originName:'BMO HARRIS',   companyName:'BMO Harris',     companyId:'9876543210', companyDesc:'PAYROLL',     odfiRouting:'07100028' },
-  'Wells Fargo': { destRouting:'121000248', originRouting:'1210002480', destName:'WELLS FARGO BANK',  originName:'WELLS FARGO',  companyName:'Wells Fargo',    companyId:'1122334455', companyDesc:'TRANSFER',    odfiRouting:'12100024' },
-  'Chase':       { destRouting:'021000021', originRouting:'0210000210', destName:'JPMORGAN CHASE',    originName:'CHASE BANK',   companyName:'JPMorgan Chase', companyId:'5566778899', companyDesc:'PAYMENT',     odfiRouting:'02100002' },
-  'BofA':        { destRouting:'026009593', originRouting:'0260095930', destName:'BANK OF AMERICA',   originName:'BOFA',         companyName:'Bank of America',companyId:'1357924680', companyDesc:'DIRECT DEP',  odfiRouting:'02600959' },
+  'Test Jenius': { destRouting:'065070532', originRouting:'0631015352', destName:'Test Jeni Bank',  originName:'Test JENI',  companyName:'Test Jeni',    companyId:'1234567890', companyDesc:'PPDPAYMENT',  odfiRouting:'06507053' },
+  'Test MBO':         { destRouting:'071000288', originRouting:'0710002880', destName:'MBO  BANK',   originName:'MBO HARRIS',   companyName:'MBO',     companyId:'9876543210', companyDesc:'PAYROLL',     odfiRouting:'07100028' },
+  'Test Fargo': { destRouting:'121000248', originRouting:'1210002480', destName:'FARGO BANK',  originName:'FARGO',  companyName:'Fargo',    companyId:'1122334455', companyDesc:'TRANSFER',    odfiRouting:'12100024' },
+  'Test Chase':       { destRouting:'021000021', originRouting:'0210000210', destName:'Test CHASE',    originName:'Test BANK',   companyName:'Test Chase', companyId:'5566778899', companyDesc:'PAYMENT',     odfiRouting:'02100002' },
+  'Test BofA':        { destRouting:'026009593', originRouting:'0260095930', destName:'Test OF AMERICA',   originName:'TestBOFA',         companyName:'Test America',companyId:'1357924680', companyDesc:'DIRECT DEP',  odfiRouting:'02600959' },
 };
 
 // SEC code rules — addenda: 'none' | 'optional' | 'required'
